@@ -1,0 +1,5 @@
+﻿  main.cpp
+C:\Users\alexm\Desktop\gameprogramming\project2new\VisualStudioSDLProject\SDLProject\main.cpp(238,35): warning C4305: 'initializing': truncation from 'double' to 'float'
+  ShaderProgram.cpp
+  Generating Code...
+  SDLProject.vcxproj -> C:\Users\alexm\Desktop\gameprogramming\project2new\VisualStudioSDLProject\SDLProject\Debug\SDLProject.exe
