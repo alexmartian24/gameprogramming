@@ -238,10 +238,11 @@ void update()
     float x_distance = fabs(g_racket_position.x - g_ball_position.x) - ((BALL_INIT_SCA.x * collision_factor + RACKET_INIT_SCA.x * collision_factor) / 2.0f);
     float y_distance = fabs(g_racket_position.y - g_ball_position.y) - ((BALL_INIT_SCA.y * collision_factor + RACKET_INIT_SCA.y * collision_factor) / 2.0f);
 
-    if (g_ball_position.y >= 0.5f || g_ball_position.y <= -3.5f) {
-        g_ball_position.x = 0.0f;
-        g_ball_position.y = -1.0f;
-        bounce = false;
+    if (g_ball_position.y >= 3.3f){
+        g_ball_movement.y = -fabs(g_ball_movement.y);
+    }
+    else if (g_ball_position.y <= -3.5f) {
+        g_ball_movement.y = fabs(g_ball_movement.y);
     }
     if (g_ball_position.x < 0.0f) {
         g_ball_movement.x *= -1.0f;
@@ -286,7 +287,7 @@ void update()
 
     // ———————————————— BALL MOVEMENT ———————————————— //
     g_ball_movement.x = 0.0f;
-    g_ball_movement.y = -1.0f;
+    g_ball_movement.y = 1.0f;
     g_ball_position += g_ball_movement * g_speed * delta_time;
     g_ball_model_matrix = glm::translate(g_ball_model_matrix, g_ball_position);
 }
