@@ -1,14 +1,12 @@
 /**
-* Author: Alex Martin
-* Assignment: Simple 2D Scene
-* Date due: 2023-06-11, 11:59pm
-* I pledge that I have completed this assignment without
-* collaborating with anyone else, in conformance with the
-* NYU School of Engineering Policies and Procedures on
-* Academic Misconduct.
+* Author: Sebastián Romero Cruz
+* CS 3113: User input exercise (SOLUTION; copy and paste this code onto main.cpp to test)
+* 26 Prairial, Year CCXXXI
+* Tandon School of Engineering
 **/
-
 #define GL_SILENCE_DEPRECATION
+#define GL_GLEXT_PROTOTYPES 1
+#define LOG(argument) std::cout << argument << '\n'
 #define STB_IMAGE_IMPLEMENTATION
 
 #ifdef _WINDOWS
@@ -17,213 +15,309 @@
 
 #include <SDL.h>
 #include <SDL_opengl.h>
-#include <iostream>
-#include "glm/mat4x4.hpp"                // 4x4 Matrix
-#include "glm/gtc/matrix_transform.hpp"  // Matrix transformation methods
-#include "ShaderProgram.h"               // We'll talk about these later in the course
+#include "glm/mat4x4.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+#include "ShaderProgram.h"
 #include "stb_image.h"
+#include <cmath>
 
 const int WINDOW_WIDTH = 640,
-		  WINDOW_HEIGHT = 480;
+WINDOW_HEIGHT = 480;
 
-const float BG_RED = 0.1922f,
-			BG_BLUE = 0.549f,
-			BG_GREEN = 0.9059f,
-			BG_OPACITY = 1.0f;
+const float BG_RED = 0.9608f,
+BG_BLUE = 0.9608f,
+BG_GREEN = 0.9608f,
+BG_OPACITY = 1.0f;
 
 const int VIEWPORT_X = 0,
-		VIEWPORT_Y = 0,
-		VIEWPORT_WIDTH = WINDOW_WIDTH,
-		VIEWPORT_HEIGHT = WINDOW_HEIGHT;
+VIEWPORT_Y = 0,
+VIEWPORT_WIDTH = WINDOW_WIDTH,
+VIEWPORT_HEIGHT = WINDOW_HEIGHT;
 
-const char V_SHADER_PATH[] = "shaders/vertex_textured.glsl";     // make sure not to use std::string objects for these!
-const char F_SHADER_PATH[] = "shaders/fragment_textured.glsl";
+const char V_SHADER_PATH[] = "shaders/vertex_textured.glsl",
+F_SHADER_PATH[] = "shaders/fragment_textured.glsl";
 
-const char SPRITE1[] = "img/ansprite.jpg";
-const char SPRITE2[] = "img/theonlycokeido.jpg";
+const char FLOWER_SPRITE[] = "img/flower.png";
+const char CUP_SPRITE[] = "img/cup.png";
 
-GLuint sprite1_texture_id;
-GLuint sprite2_texture_id;
+const float ROT_SPEED = 100.0f;
 
-float model_x = -0.1f;
-float model_y;
-float z_rotate = glm::radians(0.5f);
+const glm::vec3 FLOWER_INIT_POS = glm::vec3(0.0f, 1.0f, 0.0f),
+FLOWER_INIT_SCA = glm::vec3(1.0f, 1.0f, 0.0f);
 
-int g_frame_counter = 0;
-bool g_is_growing = true;
+const glm::vec3 CUP_INIT_POS = glm::vec3(0.1f, -1.5f, 0.0f),
+CUP_INIT_SCA = glm::vec3(3.0f, 3.0f, 0.0f);
+
+const int NUMBER_OF_TEXTURES = 1;
+const GLint LEVEL_OF_DETAIL = 0,
+TEXTURE_BORDER = 0;
+
+const float MILLISECONDS_IN_SECOND = 1000.0;
+
+SDL_Window* g_display_window;
+bool g_game_is_running = true;
+
+ShaderProgram g_flower_program;
+GLuint        g_flower_texture_id;
+
+ShaderProgram g_cup_program;
+GLuint        g_cup_texture_id;
+
+glm::mat4 g_view_matrix,
+g_flower_model_matrix,
+g_cup_model_matrix,
+g_projection_matrix;
 
 float g_previous_ticks = 0.0f;
+float g_rot_angle = 0.0f;
+float g_speed = 1.0f;
 
-SDL_Window* displayWindow;
-bool gameIsRunning = true;
+glm::vec3 g_flower_movement = glm::vec3(0.0f, 0.0f, 0.0f),
+g_flower_position = glm::vec3(0.0f, 0.0f, 0.0f);
 
-// New stuff
-ShaderProgram g_program;
-
-
-glm::mat4 g_view_matrix;        // Defines the position (location and orientation) of the camera
-glm::mat4 sprite1_model_matrix;
-glm::mat4 sprite2_model_matrix;       // Defines every translation, rotation, and/or scaling applied to an object; we'll look at these next week
-
-glm::mat4 g_projection_matrix;  // Defines the characteristics of your camera, such as clip panes, field of view, projection method, etc.
-
-const int TEXTURE_NUM = 1;
-const GLint DETAIL_LEVEL = 0;
-const GLint TEXTURE_BORDER = 0;
+// ———————————————— PART 1 ———————————————— //
+g_flower_growth_ = glm::vec3(0.0f, 0.0f, 0.0f);
+g_flower_scale = glm::vec3(1.0f, 1.0f, 0.0f);
 
 
-void print_matrix(glm::mat4&, int);
+// ———————————————— PART 1 ———————————————— //
 
-GLuint load_texture(const char* filepath) {
-	int width, height, component_num;
-	unsigned char* image = stbi_load(filepath, &width, &height, &component_num, STBI_rgb_alpha);
-	if (image == NULL) {
-		std::cout << "Failed to load texture" << std::endl;
-		assert(false);
-	}
-	GLuint textureID;
-	glGenTextures(TEXTURE_NUM, &textureID);
-	glBindTexture(GL_TEXTURE_2D, textureID);
-	glTexImage2D(GL_TEXTURE_2D, DETAIL_LEVEL, GL_RGBA, width, height, TEXTURE_BORDER, GL_RGBA, GL_UNSIGNED_BYTE, image);
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+GLuint load_texture(const char* filepath)
+{
+    int width, height, number_of_components
+    unsigned char* image = stbi_load(filepath, &width, &height, &number_of_components, STBI_rgb_alpha);
 
-	stbi_image_free(image);
+    if (image == NULL)
+    {
+        LOG("Unable to load image. Make sure the path is correct.");
+        assert(false);
+    }
 
-	return textureID;
+    GLuint textureID;
+    glGenTextures(NUMBER_OF_TEXTURES, &textureID);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+    glTexImage2D(GL_TEXTURE_2D, LEVEL_OF_DETAIL, GL_RGBA, width, height, TEXTURE_BORDER, GL_RGBA, GL_UNSIGNED_BYTE, image);
 
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    stbi_image_free(image);
+
+    return textureID;
 }
 
-void initialize() {
 
-	SDL_Init(SDL_INIT_VIDEO);
-	displayWindow = SDL_CreateWindow("Project 1", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_OPENGL);
-	SDL_GLContext context = SDL_GL_CreateContext(displayWindow);
-	SDL_GL_MakeCurrent(displayWindow, context);
+void initialise()
+{
+    SDL_Init(SDL_INIT_VIDEO);
+    g_display_window = SDL_CreateWindow("User input exercise",
+        SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+        WINDOW_WIDTH, WINDOW_HEIGHT,
+        SDL_WINDOW_OPENGL);
 
-	#ifdef _WINDOWS
-		glewInit();
-	#endif
-	
-		glViewport(VIEWPORT_X, VIEWPORT_Y, VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
-		g_program.Load(V_SHADER_PATH, F_SHADER_PATH);
+    SDL_GLContext context = SDL_GL_CreateContext(g_display_window);
+    SDL_GL_MakeCurrent(g_display_window, context);
 
-		//std::cout << sprite1_texture_id << std::endl;
-		//std::cout << sprite2_texture_id << std::endl;
+#ifdef _WINDOWS
+    glewInit();
+#endif
+    glViewport(VIEWPORT_X, VIEWPORT_Y, VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
 
-		g_view_matrix = glm::mat4(1.0f);
-		sprite1_model_matrix = glm::mat4(1.0f);
-		sprite2_model_matrix = glm::mat4(1.0f);
-		//g_model_matrix = glm::rotate(g_model_matrix, INIT_TRIANGLE_ANGLE, glm::vec3(0.0f, 1.0f, 0.0f));
-		g_projection_matrix = glm::ortho(-5.0f, 5.0f, -3.75f, 3.75f, -1.0f, 1.0f);
-		
-		g_program.SetViewMatrix(g_view_matrix);
-		g_program.SetProjectionMatrix(g_projection_matrix);
-		
-		glUseProgram(g_program.programID);
-		glClearColor(BG_RED, BG_BLUE, BG_GREEN, BG_OPACITY);
-		// enable blending
+    g_view_matrix = glm::mat4(1.0f);
+    g_projection_matrix = glm::ortho(-5.0f, 5.0f, -3.75f, 3.75f, -1.0f, 1.0f);
 
-		sprite1_texture_id = load_texture(SPRITE1);
-		sprite2_texture_id = load_texture(SPRITE2);
+    // ———————————————— FLOWER ———————————————— //
+    g_flower_program.Load(V_SHADER_PATH, F_SHADER_PATH);
 
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    g_flower_model_matrix = glm::mat4(1.0f);
+    g_flower_model_matrix = glm::translate(g_flower_model_matrix, FLOWER_INIT_POS);
+    g_flower_model_matrix = glm::scale(g_flower_model_matrix, FLOWER_INIT_SCA);
 
+    g_flower_program.SetProjectionMatrix(g_projection_matrix);
+    g_flower_program.SetViewMatrix(g_view_matrix);
 
+    glUseProgram(g_flower_program.programID);
+    g_flower_texture_id = load_texture(FLOWER_SPRITE);
+
+    // ———————————————— CUP ———————————————— //
+    g_cup_program.Load(V_SHADER_PATH, F_SHADER_PATH);
+
+    g_cup_model_matrix = glm::mat4(1.0f);
+    g_cup_model_matrix = glm::translate(g_cup_model_matrix, CUP_INIT_POS);
+    g_cup_model_matrix = glm::scale(g_cup_model_matrix, CUP_INIT_SCA);
+
+    g_cup_program.SetProjectionMatrix(g_projection_matrix);
+    g_cup_program.SetViewMatrix(g_view_matrix);
+
+    glUseProgram(g_cup_program.programID);
+    g_cup_texture_id = load_texture(CUP_SPRITE);
+
+    // ———————————————— GENERAL ———————————————— //
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    glClearColor(BG_RED, BG_BLUE, BG_GREEN, BG_OPACITY);
 }
 
-void process_input() {
-	SDL_Event event;
+void process_input()
+{
+    SDL_Event event;
+    while (SDL_PollEvent(&event))
+    {
+        switch (event.type)
+        {
+        case SDL_QUIT:
+        case SDL_WINDOWEVENT_CLOSE:
+            g_game_is_running = !g_game_is_running;
+            break;
 
-	while (SDL_PollEvent(&event)) {
-		if (event.type == SDL_QUIT || event.type == SDL_WINDOWEVENT_CLOSE) {
-			gameIsRunning = false;
-		}
-	}
-}
-void update() {
-	float ticks = (float)SDL_GetTicks() / 1000.0f;  // get the current number of ticks
-	float delta_time = ticks - g_previous_ticks;       // the delta time is the difference from the last frame
-	g_previous_ticks = ticks;
+        case SDL_KEYDOWN:
+            switch (event.key.keysym.sym) {
+            case SDLK_q:
+                g_game_is_running = !g_game_is_running;
+                break;
 
-	sprite1_model_matrix = glm::translate(sprite1_model_matrix, glm::vec3(model_x, 0.0f, 0.0f));
-	sprite2_model_matrix = glm::rotate(sprite2_model_matrix, z_rotate, glm::vec3(0.0f, 0.0f, 0.1f));
-	if (model_x < -3) {
-		model_x += 0.0001 * delta_time * 0.001f;
-	}
-	else {
-		model_x += -0.0001 * delta_time * 0.001f;
-	}
+            default: break;
+            }
+        }
+    }
+    const Uint8* key_state = SDL_GetKeyboardState(NULL);
+
+    if (key_state[SDL_SCANCODE_LEFT])
+    {
+        g_flower_movement.x = -1.0f;
+    }
+    else if (key_state[SDL_SCANCODE_RIGHT])
+    {
+        g_flower_movement.x = 1.0f;
+    }
+
+    if (key_state[SDL_SCANCODE_UP])
+    {
+        g_flower_movement.y = 1.0f;
+    }
+    else if (key_state[SDL_SCANCODE_DOWN])
+    {
+        g_flower_movement.y = -1.0f;
+    }
+
+    if (glm::length(g_flower_movement) > 1.0f)
+    {
+        g_flower_movement = glm::normalize(g_flower_movement);
+    }
 }
-void draw_object(glm::mat4& object_model_matrix, GLuint& object_texture_id){
-	g_program.SetModelMatrix(object_model_matrix);
-	glBindTexture(GL_TEXTURE_2D, object_texture_id);
-	glDrawArrays(GL_TRIANGLES, 0, 6); // we are now drawing 2 triangles, so we use 6 instead of 3
+
+void update()
+{
+    // ———————————————— PART 2 ———————————————— //
+    float collision_factor = 0.09;
+    //multiply flower init scale with collision_factor
+
+    //add collision detection
+    if (x_distance < 0.0f && )
+
+    // ———————————————— PART 2 ———————————————— //
+
+    // ———————————————— DELTA TIME CALCULATIONS ———————————————— //
+    float ticks = (float)SDL_GetTicks() / MILLISECONDS_IN_SECOND;
+    float delta_time = ticks - g_previous_ticks;
+    g_previous_ticks = ticks;
+
+    // ———————————————— RESETTING MODEL MATRIX ———————————————— //
+    g_flower_model_matrix = glm::mat4(1.0f);
+    g_flower_model_matrix = glm::translate(g_flower_model_matrix, FLOWER_INIT_POS);
+    g_flower_model_matrix = glm::scale(g_flower_model_matrix, FLOWER_INIT_SCA);
+
+    g_cup_model_matrix = glm::mat4(1.0f);
+    g_cup_model_matrix = glm::translate(g_cup_model_matrix, CUP_INIT_POS);
+    g_cup_model_matrix = glm::scale(g_cup_model_matrix, CUP_INIT_SCA);
+
+    // ———————————————— TRANSLATIONS ———————————————— //
+    g_flower_position += g_flower_movement * g_speed * delta_time;
+    g_flower_model_matrix = glm::translate(g_flower_model_matrix, g_flower_position);
+    g_flower_movement = glm::vec3(0.0f, 0.0f, 0.0f);
+
+    // ———————————————— ROTATIONS ———————————————— //
+    g_rot_angle += ROT_SPEED * delta_time;
+    g_flower_model_matrix = glm::rotate(g_flower_model_matrix, glm::radians(g_rot_angle), glm::vec3(0.0f, 1.0f, 0.0f));
+
+    // ———————————————— PART 3 ———————————————— //
+
+    // ———————————————— PART 3 ———————————————— //
 }
+
 void render() {
-	// Step 1
-	glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT);
 
-	// Step 3
-	float vertices[] =
-	{
-		 3.0f, 0.0f, 4.0f, 0.0f, 4.0f, 1.0f,
-		 3.0f, 0.0f, 4.0f, 1.0f, 3.0, 1.0f
-	};
+    // ———————————————— FLOWER ———————————————— //
+    float flower_vertices[] = {
+        -0.5f, -0.5f, 0.5f, -0.5f, 0.5f, 0.5f,
+        -0.5f, -0.5f, 0.5f, 0.5f, -0.5f, 0.5f
+    };
 
-	float vertices2[] =
-	{
-		-3.0, 0.0f, -4.0f, 0.0f, -4.0f, -1.0f,
-		-3.0f, 0.0f, -4.0f, -1.0f, -3.0f, -1.0f
-	};
-	float texture_coordinates[] = {
-	   0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,     // triangle 1
-	   0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f,     // triangle 2
-	};
+    float flower_texture_coordinates[] = {
+        0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+        0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f,
+    };
 
-	glVertexAttribPointer(g_program.positionAttribute, 2, GL_FLOAT, false, 0, vertices);
-	glEnableVertexAttribArray(g_program.positionAttribute);
+    glVertexAttribPointer(g_flower_program.positionAttribute, 2, GL_FLOAT, false, 0, flower_vertices);
+    glEnableVertexAttribArray(g_flower_program.positionAttribute);
 
-	glVertexAttribPointer(g_program.texCoordAttribute, 2, GL_FLOAT, false, 0, texture_coordinates);
-	glEnableVertexAttribArray(g_program.texCoordAttribute);
-	
-	draw_object(sprite1_model_matrix, sprite1_texture_id);
+    glVertexAttribPointer(g_flower_program.texCoordAttribute, 2, GL_FLOAT, false, 0, flower_texture_coordinates);
+    glEnableVertexAttribArray(g_flower_program.texCoordAttribute);
 
-	glDisableVertexAttribArray(g_program.positionAttribute);
-	glDisableVertexAttribArray(g_program.texCoordAttribute);
+    g_flower_program.SetModelMatrix(g_flower_model_matrix);
+    glBindTexture(GL_TEXTURE_2D, g_flower_texture_id);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
 
-	glVertexAttribPointer(g_program.positionAttribute, 2, GL_FLOAT, false, 0, vertices2);
-	glEnableVertexAttribArray(g_program.positionAttribute);
+    glDisableVertexAttribArray(g_flower_program.positionAttribute);
+    glDisableVertexAttribArray(g_flower_program.texCoordAttribute);
 
-	glVertexAttribPointer(g_program.texCoordAttribute, 2, GL_FLOAT, false, 0, texture_coordinates);
-	glEnableVertexAttribArray(g_program.texCoordAttribute);
-	
-	draw_object(sprite2_model_matrix, sprite2_texture_id);
+    // ———————————————— CUP ———————————————— //
+    float cup_vertices[] = {
+        -0.5f, -0.5f, 0.5f, -0.5f, 0.5f, 0.5f,
+        -0.5f, -0.5f, 0.5f, 0.5f, -0.5f, 0.5f
+    };
 
-	glDisableVertexAttribArray(g_program.positionAttribute);
-	glDisableVertexAttribArray(g_program.texCoordAttribute);
+    float cup_texture_coordinates[] = {
+        0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+        0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f,
+    };
 
+    glVertexAttribPointer(g_cup_program.positionAttribute, 2, GL_FLOAT, false, 0, cup_vertices);
+    glEnableVertexAttribArray(g_cup_program.positionAttribute);
 
-	// Step 4
-	SDL_GL_SwapWindow(displayWindow);
+    glVertexAttribPointer(g_cup_program.texCoordAttribute, 2, GL_FLOAT, false, 0, cup_texture_coordinates);
+    glEnableVertexAttribArray(g_cup_program.texCoordAttribute);
 
+    g_cup_program.SetModelMatrix(g_cup_model_matrix);
+    glBindTexture(GL_TEXTURE_2D, g_cup_texture_id);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    glDisableVertexAttribArray(g_cup_program.positionAttribute);
+    glDisableVertexAttribArray(g_cup_program.texCoordAttribute);
+
+    // ———————————————— GENERAL ———————————————— //
+    SDL_GL_SwapWindow(g_display_window);
 }
-void shutdown() {
-	SDL_Quit();
-}
 
-int main(int argc, char* argv[]) {
-	std::cout << "starting" << std::endl;
-	initialize();
+void shutdown() { SDL_Quit(); }
 
-	while (gameIsRunning) {
-		process_input();
-		update();
-		render();
-	}
-	shutdown();
+/**
+ Start here—we can see the general structure of a game loop without worrying too much about the details yet.
+ */
+int main(int argc, char* argv[])
+{
+    initialise();
 
-	return 0;
+    while (g_game_is_running)
+    {
+        process_input();
+        update();
+        render();
+    }
+
+    shutdown();
+    return 0;
 }
