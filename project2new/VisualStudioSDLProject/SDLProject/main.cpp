@@ -45,7 +45,7 @@ F_SHADER_PATH[] = "shaders/fragment_textured.glsl";
 const char BALL_SPRITE[] = "sprites/ball.png";
 const char RACKET_SPRITE[] = "sprites/racket.png";
 
-const glm::vec3 BALL_INIT_POS = glm::vec3(0.1f, 0.0f, 0.0f),
+const glm::vec3 BALL_INIT_POS = glm::vec3(0.0f, 0.0f, 0.0f),
 BALL_INIT_SCA = glm::vec3(1.0f, 1.0f, 0.0f);
 const glm::vec3 RACKET_INIT_POS = glm::vec3(-4.8f, 0.0f, 0.0f),
 RACKET_INIT_SCA = glm::vec3(4.0f, 4.0f, 4.0f);
@@ -199,11 +199,11 @@ void process_input()
     }
     const Uint8* key_state = SDL_GetKeyboardState(NULL);
 
-    if (key_state[SDL_SCANCODE_UP] && g_racket_position[1] <= 0.5f)
+    if (key_state[SDL_SCANCODE_UP] && g_racket_position[1] <= 0.7f)
     {
         g_racket_movement.y = 0.5f;
     }
-    else if (key_state[SDL_SCANCODE_DOWN] && g_racket_position[1] >= -1.5f)
+    else if (key_state[SDL_SCANCODE_DOWN] && g_racket_position[1] >= -1.0f)
     {
         g_racket_movement.y = -0.5f;
     }
@@ -213,11 +213,11 @@ void process_input()
     }
 
 
-    if (key_state[SDL_SCANCODE_W] && g_racket2_position[1] <= 0.5f)
+    if (key_state[SDL_SCANCODE_W] && g_racket2_position[1] <= 0.7f)
     {
         g_racket2_movement.y = 0.5f;
     }
-    else if (key_state[SDL_SCANCODE_S] && g_racket2_position[1] >= -1.5f)
+    else if (key_state[SDL_SCANCODE_S] && g_racket2_position[1] >= -1.0f)
     {
         g_racket2_movement.y = -0.5f;
     }
@@ -226,31 +226,28 @@ void process_input()
         g_racket2_movement = glm::normalize(g_racket2_movement);
     }
 }
-bool zero(float x, float y) {
-    if (x < 0 && x < y) {
-        return true;
-    }
-    return false;
-}
+
 void update()
 {
     /** ———— COLLISION DETECTION ———— **/
-    float collision_factor = 0.007;
+    float collision_factor = 0.6f;
 
-    float racket_x_distance = fabs(g_racket_position.x - g_ball_position.x) - ((RACKET_INIT_SCA.x * collision_factor + BALL_INIT_SCA.x * collision_factor) / 2.0f);
+    float racket_x_distance = fabs(RACKET_INIT_POS.x - g_ball_position.x) - ((RACKET_INIT_SCA.x * collision_factor + BALL_INIT_SCA.x * collision_factor) / 2.0f);
     float racket_y_distance = fabs(g_racket_position.y - g_ball_position.y) - ((RACKET_INIT_SCA.y * collision_factor + BALL_INIT_SCA.y * collision_factor) / 2.0f);
 
-    float racket2_x_distance = fabs(g_racket2_position.x - g_ball_position.x) - ((RACKET2_INIT_SCA.x * collision_factor + BALL_INIT_SCA.x * collision_factor) / 2.0f);
+    float racket2_x_distance = fabs(RACKET2_INIT_POS.x - g_ball_position.x) - ((RACKET2_INIT_SCA.x * collision_factor + BALL_INIT_SCA.x * collision_factor) / 2.0f);
     float racket2_y_distance = fabs(g_racket2_position.y - g_ball_position.y) - ((RACKET2_INIT_SCA.y * collision_factor + BALL_INIT_SCA.y * collision_factor) / 2.0f);
 
-    if (g_ball_position.x > 4.5f) {
-        g_ball_position.x = 4.5f;
-        g_ball_movement.x *= -1.0f;
+    if (g_ball_position.x > 4.8f) {
+        g_ball_movement.x = 0;
+        g_ball_movement.y = 0;
+        //g_game_is_running = false;
 
     }
-    else if (g_ball_position.x < -4.7f) {
-        g_ball_position.x = -4.7f;
-        g_ball_movement.x *= -1.0f;
+    else if (g_ball_position.x < -4.8f) {
+        g_ball_movement.x = 0;
+        g_ball_movement.y = 0;
+        //g_game_is_running = false;
 
     }
     if (g_ball_position.y > 3.3f) {
@@ -262,14 +259,19 @@ void update()
         g_ball_movement.y *= -1.0f;
     }
 
-    if (zero(racket_x_distance, racket_y_distance) || zero(racket2_x_distance, racket2_y_distance)) {
-        g_ball_position.x = 3.3f;
-        g_ball_position.y = 2.2f;
-        g_game_is_running = false;
-
+    if (racket_x_distance <= 0 && racket_y_distance <= 0) {
+        g_ball_position.x = -4.0f;
+        g_ball_movement.x *= -1.01f;
+        g_ball_movement.x *= 1.01f;
     }
-    //TODO: check for paddle and ball collision
-    //TODO: check for wall and ball collision
+    
+    else if (racket2_x_distance <= 0 && racket2_y_distance<= 0) {
+        // Boxes are colliding
+        g_ball_position.x = 4.0f;
+        g_ball_movement.x *= 1.01f;
+        g_ball_movement.x *= 1.01f;
+        
+    }
 
     // ———————————————— DELTA TIME CALCULATIONS ———————————————— //
     float ticks = (float)SDL_GetTicks() / MILLISECONDS_IN_SECOND;
