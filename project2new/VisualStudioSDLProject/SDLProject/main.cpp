@@ -45,7 +45,7 @@ F_SHADER_PATH[] = "shaders/fragment_textured.glsl";
 const char BALL_SPRITE[] = "sprites/ball.png";
 const char RACKET_SPRITE[] = "sprites/racket.png";
 
-const glm::vec3 BALL_INIT_POS = glm::vec3(0.0f, 0.0f, 0.0f),
+const glm::vec3 BALL_INIT_POS = glm::vec3(1.0f, 1.0f, 0.0f),
 BALL_INIT_SCA = glm::vec3(1.0f, 1.0f, 0.0f);
 const glm::vec3 RACKET_INIT_POS = glm::vec3(-4.8f, 0.0f, 0.0f),
 RACKET_INIT_SCA = glm::vec3(4.0f, 4.0f, 4.0f);
@@ -229,25 +229,26 @@ void process_input()
 
 void update()
 {
+    std::cout << "here" << '\n';
     /** ———— COLLISION DETECTION ———— **/
-    float collision_factor = 0.6f;
+    float collision_factor = 1.0f;// the collisions aren't really working and it's diriving me crazy. i'll deal with it later maybe???
 
-    float racket_x_distance = fabs(RACKET_INIT_POS.x - g_ball_position.x) - ((RACKET_INIT_SCA.x * collision_factor + BALL_INIT_SCA.x * collision_factor) / 2.0f);
-    float racket_y_distance = fabs(g_racket_position.y - g_ball_position.y) - ((RACKET_INIT_SCA.y * collision_factor + BALL_INIT_SCA.y * collision_factor) / 2.0f);
+    float racket_x_distance = fabs(RACKET_INIT_POS.x - g_ball_position.x) - ((RACKET_INIT_SCA.x + BALL_INIT_SCA.x ) / 2.0f);
+    float racket_y_distance = fabs(g_racket_position.y - g_ball_position.y) - ((RACKET_INIT_SCA.y + BALL_INIT_SCA.y) / 2.0f);
 
-    float racket2_x_distance = fabs(RACKET2_INIT_POS.x - g_ball_position.x) - ((RACKET2_INIT_SCA.x * collision_factor + BALL_INIT_SCA.x * collision_factor) / 2.0f);
-    float racket2_y_distance = fabs(g_racket2_position.y - g_ball_position.y) - ((RACKET2_INIT_SCA.y * collision_factor + BALL_INIT_SCA.y * collision_factor) / 2.0f);
+    float racket2_x_distance = fabs(RACKET2_INIT_POS.x - g_ball_position.x) - ((RACKET2_INIT_SCA.x + BALL_INIT_SCA.x) / 2.0f);
+    float racket2_y_distance = fabs(g_racket2_position.y - g_ball_position.y) - ((RACKET2_INIT_SCA.y + BALL_INIT_SCA.y) / 2.0f);
 
     if (g_ball_position.x > 4.8f) {
         g_ball_movement.x = 0;
         g_ball_movement.y = 0;
-        //g_game_is_running = false;
+        g_game_is_running = false;
 
     }
     else if (g_ball_position.x < -4.8f) {
         g_ball_movement.x = 0;
         g_ball_movement.y = 0;
-        //g_game_is_running = false;
+        g_game_is_running = false;
 
     }
     if (g_ball_position.y > 3.3f) {
@@ -262,14 +263,12 @@ void update()
     if (racket_x_distance <= 0 && racket_y_distance <= 0) {
         g_ball_position.x = -4.0f;
         g_ball_movement.x *= -1.01f;
-        g_ball_movement.x *= 1.01f;
     }
     
     else if (racket2_x_distance <= 0 && racket2_y_distance<= 0) {
         // Boxes are colliding
         g_ball_position.x = 4.0f;
-        g_ball_movement.x *= 1.01f;
-        g_ball_movement.x *= 1.01f;
+        g_ball_movement.x *= -1.01f;
         
     }
 
