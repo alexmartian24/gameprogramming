@@ -71,7 +71,22 @@ void Entity::draw_sprite_from_texture_atlas(ShaderProgram* program, GLuint textu
     glDisableVertexAttribArray(program->positionAttribute);
     glDisableVertexAttribArray(program->texCoordAttribute);
 }
+void Entity::ai_flyer(Entity* player, Map* map) {
+    glm::vec3 top = glm::vec3(m_position.x, m_position.y + (m_height / 2), m_position.z);
+    glm::vec3 bottom = glm::vec3(m_position.x, m_position.y - (m_height / 2), m_position.z);
+    float penetration_x = 0.0f, penetration_y = 0.0f;
+    bool bottom_blocked = map->is_solid(bottom, &penetration_x, &penetration_y),
+         top_blocked    = map->is_solid(top, &penetration_x, &penetration_y);
 
+    if (top_blocked || m_position.y >= 3) {
+
+        m_movement.y = -1.0f;
+    }
+    else if (bottom_blocked || m_position.y >= -3) {
+        m_movement.y = 1.0f;
+    }
+   //fix this
+}
 void Entity::activate_ai(Entity* player, Map* map)
 {
     switch (m_ai_type)
@@ -83,6 +98,10 @@ void Entity::activate_ai(Entity* player, Map* map)
     case GUARD:
         ai_guard(player, map);
         break;
+        
+    case FLYER:
+        ai_flyer(player, map);
+        break;
 
     default:
         break;
@@ -91,19 +110,26 @@ void Entity::activate_ai(Entity* player, Map* map)
 
 void Entity::ai_walker(Map* map)
 {
+    glm::vec3 left = glm::vec3(m_position.x - (m_width / 2), m_position.y, m_position.z);
+    glm::vec3 right = glm::vec3(m_position.x + (m_width / 2), m_position.y, m_position.z);
     glm::vec3 bottom_left = glm::vec3(m_position.x - (m_width / 2), m_position.y - (m_height / 2), m_position.z);
     glm::vec3 bottom_right = glm::vec3(m_position.x + (m_width / 2), m_position.y - (m_height / 2), m_position.z);
     float penetration_x = 0.0f, penetration_y = 0.0f;
-    bool away_left_cliff = map->is_solid(bottom_left, &penetration_x, &penetration_y);
-    bool away_right_cliff = map->is_solid(bottom_right, &penetration_x, &penetration_y);
+    bool left_cliff = map->is_solid(bottom_left, &penetration_x, &penetration_y),
+         right_cliff = map->is_solid(bottom_right, &penetration_x, &penetration_y),
+         left_block = map->is_solid(left, &penetration_x, &penetration_y),
+         right_block = map->is_solid(right, &penetration_x, &penetration_y);
 
-    if (!away_right_cliff || !away_left_cliff) {
-        m_movement.x *= -1;
+    if (!left_cliff)
+        m_movement.x = 1.0f; // Move right if the left side is not solid
+    else if (!right_cliff)
+        m_movement.x = -1.0f; // Move left if the right side is not solid
+
+    if (left_block || right_block) {
+        m_movement.x *= -1; // Change movement direction when colliding with a wall
     }
-    check_collision_x(map);
-    if (m_collided_left || m_collided_right) {
-        m_movement.x *= -1;
-    }
+
+    // Set the animation based on the movement direction
     if (m_movement.x > 0) {
         m_animation_indices = m_walking[this->LEFT];
     }
@@ -169,7 +195,8 @@ void Entity::update(float delta_time, Entity* player, Entity* objects, int objec
 
     m_velocity.x = m_movement.x * m_speed;
     m_velocity += m_acceleration * delta_time;
-
+    if (get_ai_type() == FLYER)
+        m_velocity.y = m_movement.y;
     // We make two calls to our check_collision methods, one for the collidable objects and one for
     // the map.
     m_position.y += m_velocity.y * delta_time;
@@ -268,8 +295,7 @@ void const Entity::check_collision_y(Map* map)
         m_position.y -= penetration_y;
         m_velocity.y = 0;
         m_collided_top = true;
-        if (get_entity_type() == ENEMY)
-            m_movement.x *= -1;
+        
     }
     else if (map->is_solid(top_right, &penetration_x, &penetration_y) && m_velocity.y > 0)
     {
@@ -298,11 +324,6 @@ void const Entity::check_collision_y(Map* map)
         m_velocity.y = 0;
         m_collided_bottom = true;
 
-    }
-    else if (!map->is_solid(bottom_right, &penetration_x, &penetration_y) || //fix this
-            !map->is_solid(bottom_left, &penetration_x, &penetration_y))
-    {
-              m_movement.x *= -1;
     }
     
 }

@@ -3,7 +3,7 @@
 #define LOG(argument) std::cout << argument << '\n'
 #define GL_GLEXT_PROTOTYPES 1
 #define FIXED_TIMESTEP 0.0166666f
-#define ENEMY_COUNT 1
+#define ENEMY_COUNT 3
 #define LEVEL1_WIDTH 14
 #define LEVEL1_HEIGHT 5
 
@@ -64,7 +64,6 @@ MAP_TILESET_FILEPATH[] = "img/stone.png",
 BGM_FILEPATH[] = "audio/Boogie Party.mp3",
 JUMP_SFX_FILEPATH[] = "audio/jump.wav",
 FLYING_ENEMY_FILEPATH[] = "img/stalkette.png",
-GUARD_ENEMY_FILEPATH[] = "img/orc.png",
 WALKING_ENEMY_FILEPATH[] = "img/zombie.png",
 TEXT_FILEPATH[] = "img/font1.png";
 
@@ -73,14 +72,16 @@ const GLint LEVEL_OF_DETAIL = 0;
 const GLint TEXTURE_BORDER = 0;
 
 int shake_timer = 0;
+bool win_flag,
+     lose_flag;
 
 unsigned int LEVEL_1_DATA[] =
 {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2,
-    27, 28, 28, 29, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1,
-    45, 46, 46, 46, 46, 46, 55, 55, 55, 55, 55, 55, 55, 56
+    0, 0, 0, 0, 0, 0, 2, 2, 2, 1, 1, 1, 1, 1,
+    45, 46, 46, 0, 0, 1, 55, 55, 55, 55, 55, 55, 55, 56
 };
 
 // ————— VARIABLES ————— //
@@ -159,7 +160,6 @@ void initialise()
 
     // ————— ENEMIES SET-UP ————— //
         //enemy1
-    GLuint guard_texture_id = load_texture(GUARD_ENEMY_FILEPATH);
     GLuint flyer_texture_id = load_texture(FLYING_ENEMY_FILEPATH);
     GLuint walker_texture_id = load_texture(WALKING_ENEMY_FILEPATH);
     
@@ -168,7 +168,7 @@ void initialise()
     g_state.enemies[0].set_ai_type(WALKER);
     g_state.enemies[0].set_ai_state(IDLE);
     g_state.enemies[0].m_texture_id = walker_texture_id;
-    g_state.enemies[0].set_position(glm::vec3(4.0f, 0.0f, 0.0f));
+    g_state.enemies[0].set_position(glm::vec3(5.0f, 0.0f, 0.0f));
     g_state.enemies[0].set_movement(glm::vec3(1.0f, 0.0f, 0.0f));
     g_state.enemies[0].set_speed(1.0f);
     g_state.enemies[0].set_acceleration(glm::vec3(0.0f, -9.81f, 0.0f));
@@ -187,7 +187,51 @@ void initialise()
     g_state.enemies[0].set_height(0.8f);
     g_state.enemies[0].set_width(0.8f);
 
-    
+    //flyer 
+    g_state.enemies[1].set_entity_type(ENEMY);
+    g_state.enemies[1].set_ai_type(FLYER);
+    g_state.enemies[1].set_ai_state(IDLE);
+    g_state.enemies[1].m_texture_id = flyer_texture_id;
+    g_state.enemies[1].set_position(glm::vec3(4.5f, 1.0f, 0.0f));
+    g_state.enemies[1].set_movement(glm::vec3(0.0f, 1.0f, 0.0f));
+    g_state.enemies[1].set_speed(1.0f);
+    g_state.enemies[1].set_acceleration(glm::vec3(0.0f, 0.0f, 0.0f)); //fix thsi
+
+    g_state.enemies[1].m_flying[g_state.enemies[1].UP] = new int[4]{ 0, 1};
+    g_state.enemies[1].m_flying[g_state.enemies[1].DOWN] = new int[4]{ 2, 3};
+
+    g_state.enemies[1].m_animation_indices = g_state.enemies[1].m_flying[g_state.enemies[0].UP];
+    g_state.enemies[1].m_animation_frames = 2;
+    g_state.enemies[1].m_animation_index = 0;
+    g_state.enemies[1].m_animation_time = 0.0f;
+    g_state.enemies[1].m_animation_cols = 2;
+    g_state.enemies[1].m_animation_rows = 2;
+    g_state.enemies[1].set_height(0.4f);
+    g_state.enemies[1].set_width(0.4f);
+
+    //GUARD
+    g_state.enemies[2].set_entity_type(ENEMY);
+    g_state.enemies[2].set_ai_type(GUARD);
+    g_state.enemies[2].set_ai_state(IDLE);
+    g_state.enemies[2].m_texture_id = walker_texture_id; // i had a separate guard texture but it was too much work
+    g_state.enemies[2].set_position(glm::vec3(6.0f, 2.0f, 0.0f));
+    g_state.enemies[2].set_movement(glm::vec3(1.0f, 0.0f, 0.0f));
+    g_state.enemies[2].set_speed(1.0f);
+    g_state.enemies[2].set_acceleration(glm::vec3(0.0f, -9.81f, 0.0f));
+
+    g_state.enemies[2].m_walking[g_state.enemies[2].RIGHT] = new int[4]{ 4, 5, 6,  7 };
+    g_state.enemies[2].m_walking[g_state.enemies[2].LEFT] = new int[4]{ 8, 9, 10, 11 };
+    g_state.enemies[2].m_walking[g_state.enemies[2].UP] = new int[4]{ 12, 13, 14, 15 };
+    g_state.enemies[2].m_walking[g_state.enemies[2].DOWN] = new int[4]{ 0, 1, 2, 3 };
+
+    g_state.enemies[2].m_animation_indices = g_state.enemies[0].m_walking[g_state.enemies[1].LEFT];  // start walker lookign left
+    g_state.enemies[2].m_animation_frames = 4;
+    g_state.enemies[2].m_animation_index = 0;
+    g_state.enemies[2].m_animation_time = 0.0f;
+    g_state.enemies[2].m_animation_cols = 4;
+    g_state.enemies[2].m_animation_rows = 4;
+    g_state.enemies[2].set_height(0.8f);
+    g_state.enemies[2].set_width(0.8f);
 
 
     // ————— GEORGE SET-UP ————— //

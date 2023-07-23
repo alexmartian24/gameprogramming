@@ -1,7 +1,7 @@
 #include "Map.h"
 
 enum EntityType { PLATFORM, PLAYER, ENEMY };
-enum AIType { WALKER, GUARD };
+enum AIType { WALKER, GUARD, FLYER };
 enum AIState { WALKING, IDLE, ATTACKING };
 
 class Entity
@@ -41,6 +41,7 @@ public:
     glm::vec3 m_movement;
 
     // Animating
+    int** m_flying = new int* [2]{ m_animation_up, m_animation_down };
     int** m_walking = new int* [4]{ m_animation_left, m_animation_right, m_animation_up, m_animation_down };
     int* m_animation_indices = NULL;
     int m_animation_frames = 0;
@@ -69,6 +70,7 @@ public:
     void activate_ai(Entity* player, Map* map);
     void ai_walker(Map* map);
     void ai_guard(Entity* player, Map* map);
+    void ai_flyer(Entity* player, Map* map);
 
     void const check_collision_y(Entity* collidable_entities, int collidable_entity_count);
     void const check_collision_x(Entity* collidable_entities, int collidable_entity_count);
