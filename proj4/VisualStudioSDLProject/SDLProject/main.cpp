@@ -38,6 +38,69 @@ struct GameState
     Mix_Chunk* jump_sfx;
 };
 
+void DrawText(ShaderProgram* program, GLuint font_texture_id, std::string text, float screen_size, float spacing, glm::vec3 position)
+{
+    const int FONTBANK_SIZE = 16;
+    // Scale the size of the fontbank in the UV-plane
+    // We will use this for spacing and positioning
+    float width = 1.0f / FONTBANK_SIZE;
+    float height = 1.0f / FONTBANK_SIZE;
+
+    // Instead of having a single pair of arrays, we'll have a series of pairs—one for each character
+    // Don't forget to include <vector>!
+    std::vector<float> vertices;
+    std::vector<float> texture_coordinates;
+
+    // For every character...
+    for (int i = 0; i < text.size(); i++) {
+        // 1. Get their index in the spritesheet, as well as their offset (i.e. their position
+        //    relative to the whole sentence)
+        int spritesheet_index = (int)text[i];  // ascii value of character
+        float offset = (screen_size + spacing) * i;
+
+        // 2. Using the spritesheet index, we can calculate our U- and V-coordinates
+        float u_coordinate = (float)(spritesheet_index % FONTBANK_SIZE) / FONTBANK_SIZE;
+        float v_coordinate = (float)(spritesheet_index / FONTBANK_SIZE) / FONTBANK_SIZE;
+
+        // 3. Inset the current pair in both vectors
+        vertices.insert(vertices.end(), {
+            offset + (-0.5f * screen_size), 0.5f * screen_size,
+            offset + (-0.5f * screen_size), -0.5f * screen_size,
+            offset + (0.5f * screen_size), 0.5f * screen_size,
+            offset + (0.5f * screen_size), -0.5f * screen_size,
+            offset + (0.5f * screen_size), 0.5f * screen_size,
+            offset + (-0.5f * screen_size), -0.5f * screen_size,
+            });
+
+        texture_coordinates.insert(texture_coordinates.end(), {
+            u_coordinate, v_coordinate,
+            u_coordinate, v_coordinate + height,
+            u_coordinate + width, v_coordinate,
+            u_coordinate + width, v_coordinate + height,
+            u_coordinate + width, v_coordinate,
+            u_coordinate, v_coordinate + height,
+            });
+    }
+
+    // 4. And render all of them using the pairs
+    glm::mat4 model_matrix = glm::mat4(1.0f);
+    model_matrix = glm::translate(model_matrix, position);
+
+    program->SetModelMatrix(model_matrix);
+    glUseProgram(program->programID);
+
+    glVertexAttribPointer(program->positionAttribute, 2, GL_FLOAT, false, 0, vertices.data());
+    glEnableVertexAttribArray(program->positionAttribute);
+    glVertexAttribPointer(program->texCoordAttribute, 2, GL_FLOAT, false, 0, texture_coordinates.data());
+    glEnableVertexAttribArray(program->texCoordAttribute);
+
+    glBindTexture(GL_TEXTURE_2D, font_texture_id);
+    glDrawArrays(GL_TRIANGLES, 0, (int)(text.size() * 6));
+
+    glDisableVertexAttribArray(program->positionAttribute);
+    glDisableVertexAttribArray(program->texCoordAttribute);
+}
+
 // ————— CONSTANTS ————— //
 const int WINDOW_WIDTH = 640,
 WINDOW_HEIGHT = 480;
@@ -72,13 +135,12 @@ const GLint LEVEL_OF_DETAIL = 0;
 const GLint TEXTURE_BORDER = 0;
 
 int shake_timer = 0;
-bool win_flag,
-     lose_flag;
+
 
 unsigned int LEVEL_1_DATA[] =
 {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1,
+    0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 2, 2, 2, 1, 1, 1, 1, 1,
     45, 46, 46, 0, 0, 1, 55, 55, 55, 55, 55, 55, 55, 56
@@ -214,7 +276,7 @@ void initialise()
     g_state.enemies[2].set_ai_type(GUARD);
     g_state.enemies[2].set_ai_state(IDLE);
     g_state.enemies[2].m_texture_id = walker_texture_id; // i had a separate guard texture but it was too much work
-    g_state.enemies[2].set_position(glm::vec3(6.0f, 2.0f, 0.0f));
+    g_state.enemies[2].set_position(glm::vec3(7.0f, 3.0f, 0.0f));
     g_state.enemies[2].set_movement(glm::vec3(1.0f, 0.0f, 0.0f));
     g_state.enemies[2].set_speed(1.0f);
     g_state.enemies[2].set_acceleration(glm::vec3(0.0f, -9.81f, 0.0f));
@@ -224,7 +286,7 @@ void initialise()
     g_state.enemies[2].m_walking[g_state.enemies[2].UP] = new int[4]{ 12, 13, 14, 15 };
     g_state.enemies[2].m_walking[g_state.enemies[2].DOWN] = new int[4]{ 0, 1, 2, 3 };
 
-    g_state.enemies[2].m_animation_indices = g_state.enemies[0].m_walking[g_state.enemies[1].LEFT];  // start walker lookign left
+    g_state.enemies[2].m_animation_indices = g_state.enemies[2].m_walking[g_state.enemies[2].LEFT];  // start walker lookign left
     g_state.enemies[2].m_animation_frames = 4;
     g_state.enemies[2].m_animation_index = 0;
     g_state.enemies[2].m_animation_time = 0.0f;
@@ -349,11 +411,10 @@ void update()
 
     while (delta_time >= FIXED_TIMESTEP)
     {
-        g_state.player->update(FIXED_TIMESTEP, g_state.player, NULL, 0, g_state.map);
-        for (int i = 0; i < ENEMY_COUNT; i++) g_state.enemies[i].update(FIXED_TIMESTEP, g_state.player, NULL, 0, g_state.map);
+        g_state.player->update(FIXED_TIMESTEP, g_state.player, g_state.enemies, 3, g_state.map);
+        for (int i = 0; i < ENEMY_COUNT; i++) g_state.enemies[i].update(FIXED_TIMESTEP, g_state.player, g_state.enemies, 3, g_state.map);
         delta_time -= FIXED_TIMESTEP;
     }
-
     m_accumulator = delta_time;
 
     m_view_matrix = glm::mat4(1.0f);
@@ -369,7 +430,13 @@ void render()
     g_state.player->render(&m_program);
     g_state.map->render(&m_program);
     GLuint font_id = load_texture(TEXT_FILEPATH);
-    //DrawText(&m_program, font_id, "Hello World!", .5f, 0.01f, glm::vec3(0.0f, 0.0f, 0.0f));
+    if (g_state.player->win_flag) {
+        DrawText(&m_program, font_id, "YOU WIN!", .5f, 0.01f, g_state.player->get_position());
+    }
+    if (g_state.player->lose_flag) {
+        DrawText(&m_program, font_id, "YOU LOSE!", .5f, 0.01f, g_state.player->get_position());
+        g_state.player->deactivate();
+    }
     for (int i = 0; i < ENEMY_COUNT; i++)
         g_state.enemies[i].render(&m_program);
 

@@ -60,6 +60,8 @@ public:
     bool m_collided_left = false;
     bool m_collided_right = false;
 
+    bool win_flag = false,
+        lose_flag = false;
         // Methods
     Entity();
     ~Entity();

@@ -1,1 +1,6 @@
-﻿  SDLProject.vcxproj -> C:\Users\alexm\Desktop\gameprogramming\proj4\VisualStudioSDLProject\SDLProject\Debug\SDLProject.exe
+﻿  main.cpp
+C:\Users\alexm\Desktop\gameprogramming\proj4\VisualStudioSDLProject\SDLProject\Entity.h(98,58): warning C4244: 'return': conversion from 'const float' to 'const int', possible loss of data
+C:\Users\alexm\Desktop\gameprogramming\proj4\VisualStudioSDLProject\SDLProject\Entity.h(99,58): warning C4244: 'return': conversion from 'const float' to 'const int', possible loss of data
+C:\Users\alexm\Desktop\gameprogramming\proj4\VisualStudioSDLProject\SDLProject\main.cpp(55,23): warning C4018: '<': signed/unsigned mismatch
+C:\Users\alexm\Desktop\gameprogramming\proj4\VisualStudioSDLProject\SDLProject\main.cpp(332,36): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+  SDLProject.vcxproj -> C:\Users\alexm\Desktop\gameprogramming\proj4\VisualStudioSDLProject\SDLProject\Debug\SDLProject.exe

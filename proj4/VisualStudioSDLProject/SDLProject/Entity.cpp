@@ -72,20 +72,10 @@ void Entity::draw_sprite_from_texture_atlas(ShaderProgram* program, GLuint textu
     glDisableVertexAttribArray(program->texCoordAttribute);
 }
 void Entity::ai_flyer(Entity* player, Map* map) {
-    glm::vec3 top = glm::vec3(m_position.x, m_position.y + (m_height / 2), m_position.z);
-    glm::vec3 bottom = glm::vec3(m_position.x, m_position.y - (m_height / 2), m_position.z);
-    float penetration_x = 0.0f, penetration_y = 0.0f;
-    bool bottom_blocked = map->is_solid(bottom, &penetration_x, &penetration_y),
-         top_blocked    = map->is_solid(top, &penetration_x, &penetration_y);
-
-    if (top_blocked || m_position.y >= 3) {
-
-        m_movement.y = -1.0f;
+    if (m_position.y < -2 || m_position.y > 4) {
+        m_movement.y *= -1;
+            
     }
-    else if (bottom_blocked || m_position.y >= -3) {
-        m_movement.y = 1.0f;
-    }
-   //fix this
 }
 void Entity::activate_ai(Entity* player, Map* map)
 {
@@ -140,6 +130,32 @@ void Entity::ai_walker(Map* map)
 
 void Entity::ai_guard(Entity* player, Map* map)
 {   
+    glm::vec3 left = glm::vec3(m_position.x - (m_width / 2), m_position.y, m_position.z);
+    glm::vec3 right = glm::vec3(m_position.x + (m_width / 2), m_position.y, m_position.z);
+    glm::vec3 bottom_left = glm::vec3(m_position.x - (m_width / 2), m_position.y - (m_height / 2), m_position.z);
+    glm::vec3 bottom_right = glm::vec3(m_position.x + (m_width / 2), m_position.y - (m_height / 2), m_position.z);
+    float penetration_x = 0.0f, penetration_y = 0.0f;
+    bool left_cliff = map->is_solid(bottom_left, &penetration_x, &penetration_y),
+        right_cliff = map->is_solid(bottom_right, &penetration_x, &penetration_y),
+        left_block = map->is_solid(left, &penetration_x, &penetration_y),
+        right_block = map->is_solid(right, &penetration_x, &penetration_y);
+
+    if (!left_cliff)
+        m_movement.x = 1.0f; // Move right if the left side is not solid
+    else if (!right_cliff)
+        m_movement.x = -1.0f; // Move left if the right side is not solid
+
+    if (left_block || right_block) {
+        m_movement.x *= -1; // Change movement direction when colliding with a wall
+    }
+
+    // Set the animation based on the movement direction
+    if (m_movement.x > 0) {
+        m_animation_indices = m_walking[this->LEFT];
+    }
+    else {
+        m_animation_indices = m_walking[this->RIGHT];
+    }
     switch (m_ai_state) {
     case IDLE:
         if (glm::distance(m_position, player->get_position()) < 3.0f) m_ai_state = WALKING;
@@ -232,11 +248,13 @@ void const Entity::check_collision_y(Entity* collidable_entities, int collidable
                 m_position.y -= y_overlap;
                 m_velocity.y = 0;
                 m_collided_top = true;
+                lose_flag = true;
             }
             else if (m_velocity.y < 0) {
                 m_position.y += y_overlap;
                 m_velocity.y = 0;
                 m_collided_bottom = true;
+                lose_flag = true;
             }
         }
     }
@@ -256,11 +274,13 @@ void const Entity::check_collision_x(Entity* collidable_entities, int collidable
                 m_position.x -= x_overlap;
                 m_velocity.x = 0;
                 m_collided_right = true;
+                lose_flag = true;
             }
             else if (m_velocity.x < 0) {
                 m_position.x += x_overlap;
                 m_velocity.x = 0;
                 m_collided_left = true;
+                lose_flag = true;
             }
         }
     }
