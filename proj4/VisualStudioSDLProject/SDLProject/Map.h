@@ -1,5 +1,4 @@
 #pragma once
-#pragma once
 #define GL_SILENCE_DEPRECATION
 #ifdef _WINDOWS
 #include <GL/glew.h>
