@@ -128,7 +128,8 @@ BGM_FILEPATH[] = "audio/Boogie Party.mp3",
 JUMP_SFX_FILEPATH[] = "audio/jump.wav",
 FLYING_ENEMY_FILEPATH[] = "img/stalkette.png",
 WALKING_ENEMY_FILEPATH[] = "img/zombie.png",
-TEXT_FILEPATH[] = "img/font1.png";
+TEXT_FILEPATH[] = "img/font1.png",
+BOOMER_FILEPATH[] = "img/boomer.png";
 
 const int NUMBER_OF_TEXTURES = 1;
 const GLint LEVEL_OF_DETAIL = 0;
@@ -358,12 +359,8 @@ void process_input()
                 break;
 
             case SDLK_SPACE:
-                // Jump
-                if (g_state.player->m_collided_bottom)
-                {
-                    g_state.player->m_is_jumping = true;
-                    Mix_PlayChannel(-1, g_state.jump_sfx, 0);
-                }
+                //shoot the boomer
+                g_state.player->shoot();
                 break;
 
             default:
@@ -387,12 +384,21 @@ void process_input()
         g_state.player->m_movement.x = 1.0f;
         g_state.player->m_animation_indices = g_state.player->m_walking[g_state.player->RIGHT];
     }
+    else if (key_state[SDL_SCANCODE_UP])
+    {
+        if (g_state.player->m_collided_bottom)
+        {
+            g_state.player->m_is_jumping = true;
+            Mix_PlayChannel(-1, g_state.jump_sfx, 0);
+        }
+    }
 
     // This makes sure that the player can't move faster diagonally
     if (glm::length(g_state.player->m_movement) > 1.0f)
     {
         g_state.player->m_movement = glm::normalize(g_state.player->m_movement);
     }
+
 }
 
 void update()

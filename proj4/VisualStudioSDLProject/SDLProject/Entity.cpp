@@ -176,10 +176,22 @@ void Entity::ai_guard(Entity* player, Map* map)
     default:
         break;
     }
+    if (m_position.y < -5) {//there's prob a better way to do this but whatever
+        deactivate();
+    }
 }
 
+bool Entity::check_win(Entity* enemies, int count) {
+    for (int i = 0; i < count; i++)
+        if (enemies[i].m_is_active == true)
+            return false;
+
+    win_flag = true;
+    return win_flag;
+}
 void Entity::update(float delta_time, Entity* player, Entity* objects, int object_count, Map* map)
-{
+{   
+    check_win(objects, object_count);
     if (!m_is_active) return;
 
     m_collided_top = false;
@@ -254,7 +266,12 @@ void const Entity::check_collision_y(Entity* collidable_entities, int collidable
                 m_position.y += y_overlap;
                 m_velocity.y = 0;
                 m_collided_bottom = true;
-                lose_flag = true;
+                if (get_entity_type() == PLAYER){
+                    collidable_entity->deactivate();
+                    check_win(collidable_entities, collidable_entity_count);
+            }
+                else
+                    lose_flag = true;
             }
         }
     }
@@ -346,6 +363,14 @@ void const Entity::check_collision_y(Map* map)
 
     }
     
+}
+
+bool Entity::shoot() {
+    Boomerang boomer;
+    boomer.is_thrown = true;
+    m_boomer = &boomer;
+
+    return true;
 }
 
 void const Entity::check_collision_x(Map* map)

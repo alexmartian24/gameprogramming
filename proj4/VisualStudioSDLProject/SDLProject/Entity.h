@@ -3,7 +3,7 @@
 enum EntityType { PLATFORM, PLAYER, ENEMY };
 enum AIType { WALKER, GUARD, FLYER };
 enum AIState { WALKING, IDLE, ATTACKING };
-
+struct Boomerang;
 class Entity
 {
 private:
@@ -11,6 +11,7 @@ private:
     EntityType m_entity_type;
     AIType m_ai_type;
     AIState m_ai_state;
+    Boomerang* m_boomer;
 
     int* m_animation_right = NULL; // move to the right
     int* m_animation_left = NULL; // move to the left
@@ -83,6 +84,9 @@ public:
 
     bool const check_collision(Entity* other) const;
 
+    bool shoot();
+    bool check_win(Entity*, int);
+
     void activate() { m_is_active = true; };
     void deactivate() { m_is_active = false; };
 
@@ -109,4 +113,12 @@ public:
     void const set_acceleration(glm::vec3 new_acceleration) { m_acceleration = new_acceleration; };
     void const set_width(float new_width) { m_width = new_width; };
     void const set_height(float new_height) { m_height = new_height; };
+};
+
+struct Boomerang{
+    glm::vec3 m_position;
+    glm::vec3 m_velocity;
+    glm::vec3 m_acceleration;
+    
+    bool is_thrown;
 };
