@@ -1,0 +1,4 @@
+C:\Users\alexm\Desktop\gamedesign\VisualStudioSDLProject\SDLProject\Debug\SDLProject.exe
+C:\Users\alexm\Desktop\gameprogramming\VisualStudioSDLProject\SDLProject\Debug\SDLProject.exe
+C:\Users\alexm\Desktop\gameprogramming\proj4\VisualStudioSDLProject\SDLProject\Debug\SDLProject.exe
+C:\Users\alexm\Desktop\gameprogramming\proj5\VisualStudioSDLProject\SDLProject\Debug\SDLProject.exe

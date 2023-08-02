@@ -1,0 +1,5 @@
+﻿  main.cpp
+C:\Users\alexm\Desktop\gameprogramming\proj5\VisualStudioSDLProject\SDLProject\Entity.h(68,18): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+C:\Users\alexm\Desktop\gameprogramming\proj5\VisualStudioSDLProject\SDLProject\Entity.h(109,58): warning C4244: 'return': conversion from 'const float' to 'const int', possible loss of data
+C:\Users\alexm\Desktop\gameprogramming\proj5\VisualStudioSDLProject\SDLProject\Entity.h(110,58): warning C4244: 'return': conversion from 'const float' to 'const int', possible loss of data
+  SDLProject.vcxproj -> C:\Users\alexm\Desktop\gameprogramming\proj5\VisualStudioSDLProject\SDLProject\Debug\SDLProject.exe
